@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RULER 情緒計量表系統 - 炫彩全息旗艦版</title>
+  <style>
+    :root {
+      --q-red: #ff2a5f;
+      --q-yellow: #ffb703;
+      --q-blue: #00b4d8;
+      --q-green: #38b000;
+      --bg-dark: #030407;
+      --card-bg: rgba(15, 18, 28, 0.75);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+      background-color: var(--bg-dark);
+      color: #fff;
+      padding: 25px 15px;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* 背景動態粒子 Canvas */
+    #particle-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    h1 {
+      font-size: 2.6rem;
+      letter-spacing: 3px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #fff, var(--q-red), var(--q-yellow), var(--q-green), var(--q-blue), #fff);
+      background-size: 400% 400%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: rainbowGlow 8s ease infinite;
+      filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.3));
+    }
+
+    @keyframes rainbowGlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    p.subtitle {
+      color: #b0b5c5;
+      font-size: 1rem;
+      margin-top: 8px;
+      letter-spacing: 1px;
+    }
+
+    /* RULER 簡介列 */
+    .ruler-bar {
+      max-width: 1550px;
+      margin: 20px auto 30px auto;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(15px);
+      padding: 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .ruler-step {
+      flex: 1;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #ddd;
+      padding: 8px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: all 0.3s;
+    }
+
+    .ruler-step:hover {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(255,183,3,0.2);
+    }
+
+    .ruler-step strong {
+      display: block;
+      color: #ffb703;
+      font-size: 1rem;
+      margin-bottom: 3px;
+    }
+
+    /* 四象限網格區劃 (2x2 矩陣：左上/右上/左下/右下) */
+    .quadrant-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 30px;
+      max-width: 1550px;
+      margin: 0 auto;
+    }
+
+    /* 各區塊位置分配 */
+    .quadrant.red { grid-column: 1; grid-row: 1; }    /* 左上 */
+    .quadrant.yellow { grid-column: 2; grid-row: 1; } /* 右上 */
+    .quadrant.blue { grid-column: 1; grid-row: 2; }   /* 左下 */
+    .quadrant.green { grid-column: 2; grid-row: 2; }  /* 右下 */
+
+    .quadrant {
+      background: var(--card-bg);
+      border-radius: 24px;
+      padding: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+      backdrop-filter: blur(15px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .quadrant::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+    }
+
+    .quadrant.red::before { background: linear-gradient(90deg, transparent, var(--q-red), transparent); box-shadow: 0 0 15px var(--q-red); }
+    .quadrant.yellow::before { background: linear-gradient(90deg, transparent, var(--q-yellow), transparent); box-shadow: 0 0 15px var(--q-yellow); }
+    .quadrant.blue::before { background: linear-gradient(90deg, transparent, var(--q-blue), transparent); box-shadow: 0 0 15px var(--q-blue); }
+    .quadrant.green::before { background: linear-gradient(90deg, transparent, var(--q-green), transparent); box-shadow: 0 0 15px var(--q-green); }
+
+    .quadrant-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .quadrant-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .red .quadrant-title { color: var(--q-red); text-shadow: 0 0 10px rgba(255,42,95,0.4); }
+    .yellow .quadrant-title { color: var(--q-yellow); text-shadow: 0 0 10px rgba(255,183,3,0.4); }
+    .blue .quadrant-title { color: var(--q-blue); text-shadow: 0 0 10px rgba(0,180,216,0.4); }
+    .green .quadrant-title { color: var(--q-green); text-shadow: 0 0 10px rgba(56,176,0,0.4); }
+
+    .badge {
+      font-size: 0.8rem;
+      padding: 4px 14px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #eee;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      perspective: 1200px;
+    }
+
+    /* 縮圖卡片樣式 */
+    .thumb-card {
+      aspect-ratio: 2/3;
+      cursor: pointer;
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+      background: #090a10;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      transform-style: preserve-3d;
+      transition: transform 0.15s ease-out, box-shadow 0.25s ease, border-color 0.25s ease;
+      will-change: transform;
+    }
+
+    .thumb-card::after {
+      content: "";
+      position: absolute;
+      inset: -100%;
+      background: linear-gradient(
+        115deg,
+        transparent 20%,
+        rgba(255, 255, 255, 0.25) 45%,
+        rgba(255, 255, 255, 0.5) 50%,
+        rgba(255, 255, 255, 0.25) 55%,
+        transparent 80%
+      );
+      transform: translateX(-100%) translateY(-100%);
+      transition: transform 0.8s ease;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .thumb-card:hover::after {
+      transform: translateX(100%) translateY(100%);
+    }
+
+    .thumb-card .glare {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(
+        circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(255, 255, 255, 0.5) 0%,
+        rgba(255, 255, 255, 0.1) 30%,
+        transparent 70%
+      );
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      mix-blend-mode: overlay;
+      z-index: 4;
+    }
+
+    .thumb-card:hover .glare { opacity: 1; }
+
+    .red .thumb-card:hover {
+      box-shadow: 0 15px 35px rgba(255, 42, 95, 0.6), 0 0 15px rgba(255, 42, 95, 0.4);
+      border-color: var(--q-red);
+    }
+    .yellow .thumb-card:hover {
+      box-shadow: 0 15px 35px rgba(255, 183, 3, 0.6), 0 0 15px rgba(255, 183, 3, 0.4);
+      border-color: var(--q-yellow);
+    }
+    .blue .thumb-card:hover {
+      box-shadow: 0 15px 35px rgba(0, 180, 216, 0.6), 0 0 15px rgba(0, 180, 216, 0.4);
+      border-color: var(--q-blue);
+    }
+    .green .thumb-card:hover {
+      box-shadow: 0 15px 35px rgba(56, 176, 0, 0.6), 0 0 15px rgba(56, 176, 0, 0.4);
+      border-color: var(--q-green);
+    }
+
+    .thumb-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+      transition: transform 0.3s ease;
+      transform: translateZ(0);
+    }
+
+    .thumb-card:hover img {
+      transform: scale(1.05) translateZ(10px);
+    }
+
+    /* ================= 超強震撼卡牌展示燈箱 ================= */
+    .lightbox-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 3, 8, 0.95);
+      backdrop-filter: blur(25px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .lightbox-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 30px;
+      right: 40px;
+      color: #fff;
+      font-size: 38px;
+      cursor: pointer;
+      width: 55px;
+      height: 55px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+      z-index: 1001;
+    }
+
+    .close-btn:hover {
+      background: var(--q-red);
+      transform: rotate(90deg) scale(1.15);
+      box-shadow: 0 0 30px var(--q-red);
+    }
+
+    /* 展示卡片容器 - 大尺寸與動態懸浮浮動 */
+    .flip-card-container {
+      width: 520px;
+      height: 780px;
+      max-width: 90vw;
+      max-height: 88vh;
+      aspect-ratio: 2/3;
+      perspective: 2500px;
+      cursor: pointer;
+      transform: scale(0.6);
+      transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+    }
+
+    .lightbox-overlay.active .flip-card-container {
+      transform: scale(1);
+      animation: floatCard 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes floatCard {
+      0% { transform: translateY(0px) rotateX(0deg); }
+      100% { transform: translateY(-12px) rotateX(2deg); }
+    }
+
+    .flip-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform-style: preserve-3d;
+      border-radius: 28px;
+    }
+
+    .flip-card-container.flipped .flip-card-inner {
+      transform: rotateY(180deg) rotateZ(-1.5deg);
+    }
+
+    .card-front, .card-back {
+      position: absolute;
+      inset: 0;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      border-radius: 28px;
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, 0.45);
+      box-shadow: 0 30px 100px rgba(0, 0, 0, 0.95), 0 0 40px rgba(255, 255, 255, 0.2);
+      background-color: #0b0d14;
+    }
+
+    /* 高級全息閃卡膜效果 */
+    .holo-foil {
+      position: absolute;
+      inset: -50%;
+      background: linear-gradient(
+        115deg,
+        transparent 20%,
+        rgba(255, 0, 128, 0.2) 35%,
+        rgba(0, 255, 240, 0.3) 50%,
+        rgba(255, 230, 0, 0.25) 65%,
+        transparent 80%
+      );
+      background-size: 200% 200%;
+      mix-blend-mode: color-dodge;
+      pointer-events: none;
+      animation: holoShift 5s ease infinite;
+      z-index: 2;
+    }
+
+    @keyframes holoShift {
+      0% { transform: translateY(-10%) rotate(0deg); background-position: 0% 0%; }
+      50% { transform: translateY(10%) rotate(4deg); background-position: 100% 100%; }
+      100% { transform: translateY(-10%) rotate(0deg); background-position: 0% 0%; }
+    }
+
+    .card-front img, .card-back img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .card-back { transform: rotateY(180deg); }
+
+    .fallback-card {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: #181a24;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 背景動態粒子星空 Canvas -->
+  <canvas id="particle-canvas"></canvas>
+
+  <header>
+    <h1>RULER 情緒計量表系統 (Mood Meter)</h1>
+    <p class="subtitle">Recognizing · Understanding · Labeling · Expressing · Regulating</p>
+  </header>
+
+  <!-- RULER 核心導覽 -->
+  <div class="ruler-bar">
+    <div class="ruler-step"><strong>Recognizing</strong>覺察身心訊號</div>
+    <div class="ruler-step"><strong>Understanding</strong>探索背後原因</div>
+    <div class="ruler-step"><strong>Labeling</strong>精準命名情緒</div>
+    <div class="ruler-step"><strong>Expressing</strong>合宜表達感受</div>
+    <div class="ruler-step"><strong>Regulating</strong>選擇對策調節</div>
+  </div>
+
+  <!-- 四象限區塊 (遵照 2x2 座標軸陣列) -->
+  <div class="quadrant-container">
+    <!-- 左上：🔴 紅色象限 (1-20) -->
+    <div class="quadrant red">
+      <div class="quadrant-header">
+        <div class="quadrant-title">🔴 紅色象限 (Red)</div>
+        <span class="badge">高能量 / 不愉悅 (1-20)</span>
+      </div>
+      <div class="card-grid" id="grid-red"></div>
+    </div>
+
+    <!-- 右上：🟡 黃色象限 (41-60) -->
+    <div class="quadrant yellow">
+      <div class="quadrant-header">
+        <div class="quadrant-title">🟡 黃色象限 (Yellow)</div>
+        <span class="badge">高能量 / 愉悅 (41-60)</span>
+      </div>
+      <div class="card-grid" id="grid-yellow"></div>
+    </div>
+
+    <!-- 左下：🔵 藍色象限 (21-40) -->
+    <div class="quadrant blue">
+      <div class="quadrant-header">
+        <div class="quadrant-title">🔵 藍色象限 (Blue)</div>
+        <span class="badge">低能量 / 不愉悅 (21-40)</span>
+      </div>
+      <div class="card-grid" id="grid-blue"></div>
+    </div>
+
+    <!-- 右下：🟢 綠色象限 (61-80) -->
+    <div class="quadrant green">
+      <div class="quadrant-header">
+        <div class="quadrant-title">🟢 綠色象限 (Green)</div>
+        <span class="badge">低能量 / 愉悅 (61-80)</span>
+      </div>
+      <div class="card-grid" id="grid-green"></div>
+    </div>
+  </div>
+
+  <!-- 全息放大展示燈箱 -->
+  <div class="lightbox-overlay" id="lightbox">
+    <div class="close-btn" id="close-btn">&times;</div>
+    
+    <div class="flip-card-container" id="flip-card">
+      <div class="flip-card-inner">
+        <div class="card-front">
+          <div class="holo-foil"></div>
+          <img id="modal-img-front" src="" alt="正面">
+        </div>
+        <div class="card-back">
+          <div class="holo-foil"></div>
+          <img id="modal-img-back" src="" alt="背面">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== 背景動態粒子 Canvas 腳本 =====
+    const canvas = document.getElementById('particle-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.radius = Math.random() * 2 + 0.5;
+        this.speedX = (Math.random() - 0.5) * 0.4;
+        this.speedY = (Math.random() - 0.5) * 0.4;
+        this.alpha = Math.random() * 0.5 + 0.2;
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+        ctx.fill();
+      }
+    }
+
+    for (let i = 0; i < 70; i++) particles.push(new Particle());
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+
+    // ===== 卡片生成與智慧載入 =====
+    const extensions = ['.jpg', '.png', '.JPG', '.PNG', '.jpeg'];
+
+    function smartLoadImage(imgElement, baseName, callback) {
+      let extIndex = 0;
+      function tryNext() {
+        if (extIndex >= extensions.length) {
+          if (callback) callback(false);
+          return;
+        }
+        const currentSrc = `${baseName}${extensions[extIndex]}`;
+        extIndex++;
+        const tempImg = new Image();
+        tempImg.onload = () => {
+          imgElement.src = currentSrc;
+          if (callback) callback(true, currentSrc);
+        };
+        tempImg.onerror = tryNext;
+        tempImg.src = currentSrc;
+      }
+      tryNext();
+    }
+
+    function buildQuadrants() {
+      for (let cardNumber = 1; cardNumber <= 80; cardNumber++) {
+        let gridContainer;
+
+        // 精確匹配象限對應容器：
+        // 1-20:  紅色象限 (左上)
+        // 21-40: 藍色象限 (左下)
+        // 41-60: 黃色象限 (右上)
+        // 61-80: 綠色象限 (右下)
+        if (cardNumber >= 1 && cardNumber <= 20) {
+          gridContainer = document.getElementById('grid-red');
+        } else if (cardNumber >= 21 && cardNumber <= 40) {
+          gridContainer = document.getElementById('grid-blue');
+        } else if (cardNumber >= 41 && cardNumber <= 60) {
+          gridContainer = document.getElementById('grid-yellow');
+        } else if (cardNumber >= 61 && cardNumber <= 80) {
+          gridContainer = document.getElementById('grid-green');
+        }
+
+        const card = document.createElement('div');
+        card.className = 'thumb-card';
+        card.setAttribute('data-id', cardNumber);
+
+        const glare = document.createElement('div');
+        glare.className = 'glare';
+
+        const img = document.createElement('img');
+
+        card.appendChild(glare);
+        card.appendChild(img);
+
+        smartLoadImage(img, `images/F${cardNumber}`, (success) => {
+          if (!success) {
+            card.innerHTML = `<div class="fallback-card"><span>卡片 ${cardNumber}</span></div>`;
+          }
+        });
+
+        // 動態立體傾斜與光澤跟隨
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          
+          card.style.setProperty('--mouse-x', `${(x / rect.width) * 100}%`);
+          card.style.setProperty('--mouse-y', `${(y / rect.height) * 100}%`);
+
+          const rotateX = ((y - rect.height / 2) / (rect.height / 2)) * -20;
+          const rotateY = ((x - rect.width / 2) / (rect.width / 2)) * 20;
+
+          card.style.transform = `perspective(1000px) scale(1.12) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(20px)`;
+        });
+
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = `perspective(1000px) scale(1) rotateX(0deg) rotateY(0deg) translateZ(0px)`;
+        });
+
+        card.addEventListener('click', () => openLightbox(cardNumber));
+        gridContainer.appendChild(card);
+      }
+    }
+
+    const lightbox = document.getElementById('lightbox');
+    const flipCard = document.getElementById('flip-card');
+    const modalFront = document.getElementById('modal-img-front');
+    const modalBack = document.getElementById('modal-img-back');
+
+  function openLightbox(id) {
+  smartLoadImage(modalFront, `images/F${id}`);
+  smartLoadImage(modalBack, `images/B${id}`);
+  flipCard.classList.remove('flipped');
+  lightbox.classList.add('active');
+}
+
+    flipCard.addEventListener('click', () => flipCard.classList.toggle('flipped'));
+    document.getElementById('close-btn').addEventListener('click', () => lightbox.classList.remove('active'));
+
+    buildQuadrants();
+  </script>
+</body>
+</html>
