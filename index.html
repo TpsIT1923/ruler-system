@@ -419,7 +419,26 @@ footer {
   line-height: 1.8;
   letter-spacing: 1px;
 }
+/* 標題與 Logo 容器對齊 */
+    .header-title-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px; /* Logo 與標題之間的間距 */
+    }
 
+    /* Logo 大小與效果設定 */
+    .header-logo {
+      height: 60px; /* 可依據實際校徽形狀調整高度 */
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5)); /* 加上微弱白光，防深色背景遮擋 */
+    }
+
+    /* 確保 h1 保持行內置中 */
+    header h1 {
+      margin: 0;
+    }
   </style>
 </head>
 <body>
@@ -428,9 +447,12 @@ footer {
   <canvas id="particle-canvas"></canvas>
 
   <header>
+  <div class="header-title-container">
+    <img src="logo.png" alt="太古小學 Logo" class="header-logo">
     <h1>RULER 情緒計量表系統 (Mood Meter)</h1>
-    <p class="subtitle">Recognizing · Understanding · Labeling · Expressing · Regulating</p>
-  </header>
+  </div>
+  <p class="subtitle">Recognizing · Understanding · Labeling · Expressing · Regulating</p>
+</header>
 
   <!-- RULER 核心導覽 -->
   <div class="ruler-bar">
