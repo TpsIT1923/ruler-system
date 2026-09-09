@@ -587,10 +587,10 @@
         card.appendChild(img);
 
         smartLoadImage(img, `images/F${cardNumber}`, (success) => {
-          if (!success) {
-            card.innerHTML = `<div class="fallback-card"><span>卡片 ${cardNumber}</span></div>`;
-          }
-        });
+  if (!success) {
+    card.innerHTML = `<div class="fallback-card"><span>卡片 ${cardNumber}</span></div>`;
+  }
+});
 
         // 動態立體傾斜與光澤跟隨
         card.addEventListener('mousemove', (e) => {
